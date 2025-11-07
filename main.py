@@ -12,7 +12,7 @@ class App(ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        
+        # Creating the frames for content
         self.left = ctk.CTkFrame(self)
         self.right = ctk.CTkFrame(self)
         
@@ -27,11 +27,14 @@ class App(ctk.CTk):
         
         self.in_entry = ctk.CTkEntry(self.left, placeholder_text="Enter value")
         self.in_entry.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+        
+        self.in_entry.bind("<Return>", self.on_convert)      # main Enter input
+        self.in_entry.bind("<KP_Enter>", self.on_convert)    # numpad Enter input
 
         # Temperature dropdown on the left
         self.unit_in_var = ctk.StringVar(value="°C")
         self.unit_in = ctk.CTkOptionMenu(self.left, values=["°C", "°F", "K"],
-                                        variable=self.unit_in_var)
+                                        variable=self.unit_in_var, fg_color="#3B82F6", button_color="#2563EB", button_hover_color="#1453dd", text_color="#F3F4F6")
         self.unit_in.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 12))
 
         # Adding content for the right column
@@ -47,20 +50,11 @@ class App(ctk.CTk):
         # Temperature dropdown on the right
         self.unit_out_var = ctk.StringVar(value="°F")
         self.unit_out = ctk.CTkOptionMenu(self.right, values=["°C", "°F", "K"],
-                                  variable=self.unit_out_var)
+                                  variable=self.unit_out_var, fg_color="#3B82F6", button_color="#2563EB", button_hover_color="#1453dd", text_color="#F3F4F6")
         self.unit_out.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 12))
         
-        self.convert_btn = ctk.CTkButton(self.left, text="Convert", command=self.on_convert)
+        self.convert_btn = ctk.CTkButton(self.left, text="Convert", command=self.on_convert, fg_color="#3B82F6", hover_color="#2563EB", text_color="#F3F4F6")
         self.convert_btn.grid(row=3, column=0, padx=12, pady=(4, 12), sticky="e")
-
-    def on_convert(self, event=None):
-        try:
-            x = float(self.in_entry.get())
-            k = self.to_kelvin(x, self.unit_in_var.get())
-            y = self.from_kelvin(k, self.unit_out_var.get())
-            self.output_var.set(f"{y:.2f} {self.unit_out_var.get()}")
-        except ValueError:
-            self.output_var.set("Invalid number")
     
     def to_kelvin(self, x, u):
         if u == "°C": return x + 273.15
@@ -72,21 +66,27 @@ class App(ctk.CTk):
         if u == "°F": return (k - 273.15) * 9/5 + 32
         return k  # K
 
-    def on_convert(self):
+    def on_convert(self, event=None):
         try:
-            x = float(self.in_entry.get())
+            raw = self.in_entry.get().strip()
+            x = float(raw)
+
+            # Optional: if units are the same, just echo
+            if self.unit_in_var.get() == self.unit_out_var.get():
+                self.output_var.set(f"{x:.1f} {self.unit_out_var.get()}")
+                return
+
             k = self.to_kelvin(x, self.unit_in_var.get())
+            
+            # Optional physical check (Kelvin cannot be negative)
+            if k < 0:
+                self.output_var.set("Below absolute zero!")
+                return
+
             y = self.from_kelvin(k, self.unit_out_var.get())
             self.output_var.set(f"{y:.2f} {self.unit_out_var.get()}")
         except ValueError:
             self.output_var.set("Invalid number")
-
-
-        # Write to the read-only textbox
-        self.output_field.configure(state="normal")
-        self.output_field.delete("1.0", "end")
-        self.output_field.insert("1.0", msg)
-        self.output_field.configure(state="disabled")
 
 if __name__ == "__main__":
     app = App()
